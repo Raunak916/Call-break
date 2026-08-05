@@ -1,15 +1,12 @@
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-// Same-origin: the Vite dev server proxies /socket.io to the backend, and in
-// production the server serves the built client on the same port.
-export const socket = io({ autoConnect: true });
+const SERVER_URL =
+  import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
-/**
- * Emit an event and resolve with the ack payload ({ ok } or { error }).
- * Always sends an explicit payload slot: socket.io-client v4 only registers a
- * trailing function as the ack when there is also a data arg (a lone
- * `emit(event, fn)` silently drops the ack).
- */
+export const socket = io(SERVER_URL, {
+  autoConnect: true,
+});
+
 export function emitAck(event, payload) {
   return new Promise((resolve) => {
     socket.emit(event, payload ?? {}, resolve);

@@ -1,0 +1,15 @@
+# Render blueprint — one service runs everything (built client + Socket.IO API).
+# Deploy: Render dashboard → "New +" → "Blueprint" → pick this repo.
+# It auto-creates the web service below and deploys on every push to main.
+
+services:
+  - type: web
+    name: call-break
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    # PORT is injected automatically by Render; the server already reads process.env.PORT.

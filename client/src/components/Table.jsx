@@ -90,8 +90,9 @@ export default function Table({ state }) {
   const posMap = {};
   for (const { seat, label } of layout) posMap[seat] = label;
 
+  // Only 'playing' has a current seat; bidding is simultaneous (its shared
+  // countdown lives in the BiddingPanel).
   const currentSeat =
-    state?.phase === 'bidding' ? state?.bidding?.currentSeat :
     state?.phase === 'playing' ? state?.play?.currentPlayerSeat : null;
 
   // --- Trick resolution animation ---
@@ -157,7 +158,7 @@ export default function Table({ state }) {
       )}
 
       {/* Timer */}
-      {currentSeat != null && (state.phase === 'bidding' || state.phase === 'playing') && (
+      {currentSeat != null && (
         <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 4 }}>
           <TurnTimer key={`timer-${state.version}`} durationMs={15000} isMine={currentSeat === you} />
         </Box>

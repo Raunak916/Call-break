@@ -6,7 +6,8 @@
  */
 export const isMyTurn = (state) => {
   if (!state) return false;
-  if (state.phase === 'bidding') return state.bidding?.currentSeat === state.you;
+  // Bidding is a shared simultaneous window (no per-player turn); the
+  // BiddingPanel gates the bid controls on whether the viewer has bid yet.
   if (state.phase === 'playing') return state.play?.currentPlayerSeat === state.you;
   return false;
 };

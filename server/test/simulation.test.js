@@ -25,8 +25,8 @@ function simulateGame(seed) {
 
   startRound(state, rng);
   for (let round = 1; round <= state.totalRounds; round++) {
-    while (state.phase === 'bidding') {
-      const seat = state.bidding.currentSeat;
+    // Bidding is simultaneous — each seat bids once, in any order.
+    for (const seat of state.bidding.bidOrder) {
       const bid = bots[seat].chooseBid(buildCtx(state, seat));
       applyBid(state, seat, bid);
     }

@@ -10,6 +10,7 @@ export const ERROR_MESSAGES = {
   NOT_ENOUGH_PLAYERS: 'Need at least one player to start.',
   WRONG_PHASE: 'That action is not allowed right now.',
   NOT_YOUR_TURN: "It isn't your turn yet.",
+  ALREADY_BID: 'You already placed your bid.',
   INVALID_BID: 'Enter a bid between 0 and 13.',
   INVALID_CARD: 'That card is not valid.',
   CARD_NOT_IN_HAND: "You don't hold that card.",

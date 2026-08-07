@@ -11,7 +11,7 @@ function err(code) {
 /** Validate a `game:bid` action. */
 export function validateBid(state, seat, bid) {
   if (state.phase !== 'bidding') return err('WRONG_PHASE');
-  if (state.bidding.currentSeat !== seat) return err('NOT_YOUR_TURN');
+  if (state.bidding.bids[seat] != null) return err('ALREADY_BID');
   if (!Number.isInteger(bid) || bid < 0 || bid > CARDS_PER_HAND) return err('INVALID_BID');
   return { ok: true };
 }

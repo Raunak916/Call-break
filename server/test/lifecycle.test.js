@@ -82,10 +82,10 @@ test('1-round game: lobby → bidding → playing → gameOver → rematch → b
   await emitAck(b, 'room:ready', { ready: true });
   assert.equal((await emitAck(a, 'room:start')).ok, true);
 
-  // Both humans bid
-  await waitState(aStates, (s) => s.phase === 'bidding' && s.bidding?.currentSeat === 0);
+  // Both humans bid (simultaneously — order doesn't matter)
+  await waitState(aStates, (s) => s.phase === 'bidding');
   await emitAck(a, 'game:bid', { bid: 2 });
-  await waitState(bStates, (s) => s.phase === 'bidding' && s.bidding?.currentSeat === 1);
+  await waitState(bStates, (s) => s.phase === 'bidding');
   await emitAck(b, 'game:bid', { bid: 1 });
 
   // Disconnect both humans → seats become botControlled → bots play all 13 tricks instantly

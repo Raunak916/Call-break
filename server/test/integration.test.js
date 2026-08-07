@@ -100,6 +100,14 @@ function fastBots() {
   });
 }
 
+/** Bots that never act on their own — used to isolate the shared-window close. */
+function slowBots() {
+  return Array.from({ length: 4 }, (_, i) => {
+    const b = createHeuristicBot({ rng: mulberry32(2000 + i) });
+    return { ...b, delayMs: () => 60_000 };
+  });
+}
+
 /** Create a room with Alice as host and instant bots; returns socket + states + ack. */
 async function createHostedRoom() {
   const { socket, states } = await connect();
@@ -140,7 +148,8 @@ test('create + join: acks, and after start each viewer sees only their own hand'
   const aState = await waitState(aStates, (s) => s.phase === 'bidding');
   assert.equal(aState.round, 1);
   assert.equal(aState.totalRounds, 5);
-  assert.equal(aState.bidding.currentSeat, 0); // round 1 bids from seat 0
+  assert.deepEqual(aState.bidding.bidOrder, [0, 1, 2, 3]);
+  assert.deepEqual(aState.bidding.bids, [null, null, null, null]); // simultaneous — nobody's bid yet
   assert.equal(aState.players[0].hand.length, 13);
   assert.ok(Number.isInteger(aState.players[0].hand[0].r));
   assert.equal(aState.players[1].hand, null);
@@ -183,19 +192,19 @@ test('error contract: room lookup, gating, wrong phase, turn and bid validation'
   // game:bid before the game starts.
   assert.deepEqual(await emitAck(a, 'game:bid', { bid: 2 }), { error: 'WRONG_PHASE' });
 
-  // Start properly; Alice (seat 0) bids first.
+  // Start properly; bidding is simultaneous (any seat may bid).
   await emitAck(b, 'room:ready', { ready: true });
   assert.equal((await emitAck(a, 'room:start')).ok, true);
   const bidding = await waitState(aStates, (s) => s.phase === 'bidding');
-  assert.equal(bidding.bidding.currentSeat, 0);
+  assert.deepEqual(bidding.bidding.bidOrder, [0, 1, 2, 3]);
 
   assert.deepEqual(await emitAck(a, 'game:bid', { bid: 14 }), { error: 'INVALID_BID' });
   assert.deepEqual(await emitAck(a, 'game:bid', { bid: -1 }), { error: 'INVALID_BID' });
   assert.deepEqual(await emitAck(a, 'game:bid', { bid: 2.5 }), { error: 'INVALID_BID' });
 
-  // After Alice bids, it is Bob's turn; Alice bidding again is out of turn.
+  // Alice bids; a second bid from her is rejected. Bob can still bid.
   assert.equal((await emitAck(a, 'game:bid', { bid: 13 })).ok, true);
-  assert.deepEqual(await emitAck(a, 'game:bid', { bid: 1 }), { error: 'NOT_YOUR_TURN' });
+  assert.deepEqual(await emitAck(a, 'game:bid', { bid: 1 }), { error: 'ALREADY_BID' });
 });
 
 test('bidding -> playing: legal play accepted, follow-suit is enforced', async () => {
@@ -240,6 +249,26 @@ test('bidding -> playing: legal play accepted, follow-suit is enforced', async (
     // Void in the led suit: any card is legal.
     assert.equal((await emitAck(b, 'game:play', { card: bHand[0] })).ok, true);
   }
+});
+
+test('bidding: unbidden seats are auto-filled when the shared window expires', async () => {
+  const { a, aStates, roomCode } = await createHostedRoom();
+  const room = manager.get(roomCode);
+  // Bots never act on their own; shorten the shared window so the test stays fast.
+  room.botProfiles = slowBots();
+  room.turnTimeoutMs = 150;
+
+  assert.equal((await emitAck(a, 'room:ready', { ready: true })).ok, true);
+  assert.equal((await emitAck(a, 'room:start')).ok, true);
+
+  // While the window is open, nobody is bid yet — not even the bots.
+  const bidding = await waitState(aStates, (s) => s.phase === 'bidding');
+  assert.deepEqual(bidding.bidding.bids, [null, null, null, null]);
+
+  // Alice never bids; when the window closes, every remaining seat is auto-bid.
+  const playing = await waitState(aStates, (s) => s.phase === 'playing', 5000);
+  assert.ok(playing.bidding.bids.every((b) => Number.isInteger(b)));
+  assert.ok(playing.players.every((p) => Number.isInteger(p.bid)));
 });
 
 test('disconnect: a bot drives the seat during grace, and rejoin reclaims it', async () => {

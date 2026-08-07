@@ -39,7 +39,7 @@
  *   hostSeat: number|null,
  *   you: number,
  *   players: PlayerView[],
- *   bidding: { currentSeat: number, bidOrder: number[], bids: (number|null)[] }|null,
+ *   bidding: { bidOrder: number[], bids: (number|null)[] }|null,
  *   play: { trickNumber: number, currentPlayerSeat: number, leaderSeat: number,
  *           ledSuit: string|null, trickCards: { seat: number, card: Card }[],
  *           lastTrick: object|null }|null,

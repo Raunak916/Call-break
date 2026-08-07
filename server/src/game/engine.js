@@ -84,6 +84,8 @@ function biddingOrder(lastRoundWinnerSeat) {
 /**
  * Begin a fresh round's bidding. Requires phase 'lobby' (round 1) or
  * 'roundEnd' (subsequent rounds). Deals cards and sets the bidding order.
+ * Bidding is simultaneous: every seat may bid at any time; `bidOrder` is
+ * kept only to break ties for who leads trick 1.
  */
 export function startRound(state, rng = Math.random) {
   if (state.phase !== 'lobby' && state.phase !== 'roundEnd') {
@@ -97,7 +99,6 @@ export function startRound(state, rng = Math.random) {
   const order = biddingOrder(state.lastRoundWinnerSeat);
   state.phase = 'bidding';
   state.bidding = {
-    currentSeat: order[0],
     bidOrder: order,
     bids: [null, null, null, null],
   };
@@ -105,7 +106,10 @@ export function startRound(state, rng = Math.random) {
   return state;
 }
 
-/** Record a bid. Throws GameError on invalid input. */
+/**
+ * Record a bid. Any unbidden seat may bid; once all four have bid, play
+ * begins. Throws GameError on invalid input.
+ */
 export function applyBid(state, seat, bid) {
   const check = validateBid(state, seat, bid);
   if (!check.ok) throw new GameError(check.error);
@@ -113,12 +117,8 @@ export function applyBid(state, seat, bid) {
   state.bidding.bids[seat] = bid;
   state.players[seat].bid = bid;
 
-  const allBid = state.bidding.bids.every((b) => b != null);
-  if (allBid) {
+  if (state.bidding.bids.every((b) => b != null)) {
     beginPlay(state);
-  } else {
-    const i = state.bidding.bidOrder.indexOf(seat);
-    state.bidding.currentSeat = state.bidding.bidOrder[(i + 1) % NUM_SEATS];
   }
   state.version += 1;
   return state;

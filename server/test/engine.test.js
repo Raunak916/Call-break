@@ -37,16 +37,18 @@ function pickLegalCard(state, seat) {
   return hand[0];
 }
 
-test('round 1 bidding order is seats 0,1,2,3 and advances per bid', () => {
+test('bidding is simultaneous: bidOrder set and bids accepted in any order', () => {
   const state = createState();
   startRound(state, mulberry32(1));
   assert.equal(state.phase, 'bidding');
   assert.deepEqual(state.bidding.bidOrder, [0, 1, 2, 3]);
-  assert.equal(state.bidding.currentSeat, 0);
+  assert.deepEqual(state.bidding.bids, [null, null, null, null]);
 
-  applyBid(state, 0, 2);
-  assert.equal(state.bidding.currentSeat, 1);
-  assert.equal(state.bidding.bids[0], 2);
+  // No waiting on a turn — seat 3 can bid before seat 0.
+  applyBid(state, 3, 5);
+  assert.equal(state.bidding.bids[3], 5);
+  assert.equal(state.phase, 'bidding'); // others still unbidden
+  assert.equal(state.bidding.bids[0], null);
 });
 
 test('highest bidder leads; ties go to earliest in bidding order', () => {
@@ -61,13 +63,15 @@ test('highest bidder leads; ties go to earliest in bidding order', () => {
   assert.equal(state.play.leaderSeat, 1);
 });
 
-test('bid validation rejects wrong phase, wrong turn, bad values', () => {
+test('bid validation rejects wrong phase, duplicate bid, bad values', () => {
   const state = createState();
   startRound(state, mulberry32(3));
-  assert.throws(() => applyBid(state, 1, 2), (e) => e instanceof GameError && e.code === 'NOT_YOUR_TURN');
   assert.throws(() => applyBid(state, 0, 14), (e) => e.code === 'INVALID_BID');
   assert.throws(() => applyBid(state, 0, -1), (e) => e.code === 'INVALID_BID');
+  assert.throws(() => applyBid(state, 0, 2.5), (e) => e.code === 'INVALID_BID');
   applyBid(state, 0, 2);
+  // A second bid from the same seat is rejected; other seats may still bid.
+  assert.throws(() => applyBid(state, 0, 3), (e) => e instanceof GameError && e.code === 'ALREADY_BID');
   applyBid(state, 1, 2);
   applyBid(state, 2, 2);
   applyBid(state, 3, 2);
@@ -145,9 +149,8 @@ test('full game: 4 players x 5 rounds completes legally with consistent scores',
   startRound(state, rng);
 
   for (let round = 1; round <= state.totalRounds; round++) {
-    // Bidding
-    for (let i = 0; i < 4; i++) {
-      const seat = state.bidding.currentSeat;
+    // Bidding (simultaneous — order doesn't matter)
+    for (const seat of state.bidding.bidOrder) {
       applyBid(state, seat, (round + seat) % 5);
     }
     assert.equal(state.phase, 'playing');
@@ -195,8 +198,8 @@ test('next round bids starting left of the previous winner', () => {
   const state = createState({ totalRounds: 2 });
   const rng = mulberry32(11);
   startRound(state, rng);
-  for (let i = 0; i < 4; i++) {
-    applyBid(state, state.bidding.currentSeat, 1);
+  for (const seat of state.bidding.bidOrder) {
+    applyBid(state, seat, 1);
   }
   let guard = 0;
   while (state.phase === 'playing') {
@@ -209,14 +212,13 @@ test('next round bids starting left of the previous winner', () => {
   nextRound(state, rng);
   const expected = [0, 1, 2, 3].map((i) => (winner + 1 + i) % 4);
   assert.deepEqual(state.bidding.bidOrder, expected);
-  assert.equal(state.bidding.currentSeat, expected[0]);
 });
 
 test('rematch resets scores and starts round 1 fresh', () => {
   const state = createState({ totalRounds: 1 });
   const rng = mulberry32(21);
   startRound(state, rng);
-  for (let i = 0; i < 4; i++) applyBid(state, state.bidding.currentSeat, 2);
+  for (const seat of state.bidding.bidOrder) applyBid(state, seat, 2);
   let guard = 0;
   while (state.phase === 'playing') {
     applyPlay(state, state.play.currentPlayerSeat, pickLegalCard(state, state.play.currentPlayerSeat));

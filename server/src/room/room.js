@@ -40,6 +40,8 @@ export class Room {
     this.botProfiles = Array.from({ length: 4 }, (_, i) =>
       (botProfileFactory || createHeuristicBot)(i),
     );
+    // Shared bidding window length; overridable in tests (like botProfiles).
+    this.turnTimeoutMs = TURN_TIMEOUT_MS;
   }
 
   touch() {
@@ -202,7 +204,7 @@ export class Room {
       return { error: e.code };
     }
     this.touch();
-    this.clearTimer(`afk-${seat}`);
+    if (this.state.phase !== 'bidding') this.clearTimer('bidding-timeout');
     this.broadcast();
     this.pump();
     return { ok: true };
@@ -361,9 +363,13 @@ export class Room {
       }
       return;
     }
-    if (state.phase !== 'bidding' && state.phase !== 'playing') return;
+    if (state.phase === 'bidding') {
+      this.pumpBidding();
+      return;
+    }
+    if (state.phase !== 'playing') return;
 
-    const seat = state.phase === 'bidding' ? state.bidding.currentSeat : state.play.currentPlayerSeat;
+    const seat = state.play.currentPlayerSeat;
     const player = state.players[seat];
 
     if (player.isBot || player.botControlled) {
@@ -375,6 +381,55 @@ export class Room {
       if (!this.timers.has(`afk-${seat}`)) {
         this.setTimer(`afk-${seat}`, TURN_TIMEOUT_MS, () => this.afkMove(seat));
       }
+    }
+  }
+
+  /**
+   * Bidding is simultaneous: every unbidden bot gets its own pacing timer,
+   * and all unbidden connected humans share ONE deadline (a single 15s
+   * window). When the window expires, every remaining seat is auto-bid.
+   */
+  pumpBidding() {
+    const state = this.state;
+    const { bidOrder, bids } = state.bidding;
+    let humanPending = false;
+
+    for (const seat of bidOrder) {
+      if (bids[seat] != null) continue; // already bid
+      const player = state.players[seat];
+      if (player.isBot || player.botControlled) {
+        if (!this.timers.has(`bot-${seat}`)) {
+          const delay = this.botProfiles[seat].delayMs(buildCtx(state, seat));
+          this.setTimer(`bot-${seat}`, delay, () => this.runBotAction(seat));
+        }
+      } else if (player.connected) {
+        humanPending = true;
+      }
+    }
+
+    if (humanPending && !this.timers.has('bidding-timeout')) {
+      this.setTimer('bidding-timeout', this.turnTimeoutMs, () => this.closeBidding());
+    }
+  }
+
+  /** The shared bidding window expired: fill in every remaining bid. */
+  closeBidding() {
+    if (this.destroyed || this.state.phase !== 'bidding') return;
+    const state = this.state;
+    let changed = false;
+    for (const seat of state.bidding.bidOrder) {
+      if (state.bidding.bids[seat] != null) continue;
+      try {
+        const ctx = buildCtx(state, seat);
+        applyBid(state, seat, this.botProfiles[seat].chooseBid(ctx));
+        changed = true;
+      } catch (e) {
+        // ignore — the seat somehow became unbiddable; progress must not stall
+      }
+    }
+    if (changed) {
+      this.broadcast();
+      this.pump();
     }
   }
 

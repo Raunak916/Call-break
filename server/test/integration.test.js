@@ -149,7 +149,10 @@ test('create + join: acks, and after start each viewer sees only their own hand'
   assert.equal(aState.round, 1);
   assert.equal(aState.totalRounds, 5);
   assert.deepEqual(aState.bidding.bidOrder, [0, 1, 2, 3]);
-  assert.deepEqual(aState.bidding.bids, [null, null, null, null]); // simultaneous — nobody's bid yet
+  // Bidding is simultaneous — the human seats may bid in any order and
+  // haven't yet. (The instant bots may already have bid, so don't assert on them.)
+  assert.equal(aState.bidding.bids[0], null);
+  assert.equal(aState.bidding.bids[1], null);
   assert.equal(aState.players[0].hand.length, 13);
   assert.ok(Number.isInteger(aState.players[0].hand[0].r));
   assert.equal(aState.players[1].hand, null);
@@ -298,6 +301,41 @@ test('disconnect: a bot drives the seat during grace, and rejoin reclaims it', a
   const reclaimed = await waitState(aStates, (s) => s.players[1].botControlled === false);
   assert.equal(reclaimed.players[1].connected, true);
   assert.equal(reclaimed.players[1].isBot, false);
+});
+
+test('disconnect: rejoin reclaims seat even after grace expires (post-grace reconnect)', async () => {
+  const { a, aStates, roomCode } = await createHostedRoom();
+  const room = manager.get(roomCode);
+  const { socket: b, states: bStates } = await connect();
+  const jb = await emitAck(b, 'room:join', { code: roomCode, name: 'Bob' });
+  const bobPlayerId = jb.playerId;
+
+  await emitAck(a, 'room:ready', { ready: true });
+  await emitAck(b, 'room:ready', { ready: true });
+  assert.equal((await emitAck(a, 'room:start')).ok, true);
+  await waitState(aStates, (s) => s.phase === 'bidding');
+
+  // Bob disconnects — seat becomes botControlled, grace window starts.
+  b.disconnect();
+  b.io.disconnect();
+  const takeover = await waitState(aStates, (s) => s.players[1].botControlled === true);
+  assert.equal(takeover.players[1].isBot, false);
+
+  // Manually expire the grace window (skip the 45 s timer).
+  room.expireGrace(1);
+  const afterGrace = await waitState(aStates, (s) => s.players[1].isBot === true);
+  assert.equal(afterGrace.players[1].isBot, true);
+  assert.equal(afterGrace.players[1].connected, false);
+
+  // Bob returns on a fresh socket after grace — reclaims the same seat.
+  const { socket: b2 } = await connect();
+  const re = await emitAck(b2, 'room:rejoin', { code: roomCode, playerId: bobPlayerId });
+  assert.equal(re.ok, true);
+  assert.equal(re.seat, 1);
+
+  const reclaimed = await waitState(aStates, (s) => s.players[1].connected === true);
+  assert.equal(reclaimed.players[1].isBot, false);
+  assert.equal(reclaimed.players[1].name, 'Bob');
 });
 
 test('host transfer: leaving host promotes the lowest connected human; seats free up', async () => {

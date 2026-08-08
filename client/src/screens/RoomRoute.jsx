@@ -18,9 +18,25 @@ import Game from './Game.jsx';
 
 function LoadingRoom({ text }) {
   return (
-    <Box sx={{ display: 'grid', placeItems: 'center', minHeight: '100vh' }}>
+    <Box sx={{ display: 'grid', placeItems: 'center', minHeight: '100vh', p: 2 }}>
       <Stack alignItems="center" spacing={2}>
-        <CircularProgress />
+        <Box
+          sx={{
+            width: 56,
+            height: 56,
+            borderRadius: 999,
+            display: 'grid',
+            placeItems: 'center',
+            fontSize: 28,
+            color: '#e6b23c',
+            background: 'linear-gradient(135deg, rgba(230,178,60,0.16), rgba(230,178,60,0.04))',
+            border: '1px solid rgba(230,178,60,0.4)',
+            boxShadow: '0 0 24px rgba(230,178,60,0.22)',
+          }}
+        >
+          ♠
+        </Box>
+        <CircularProgress size={24} sx={{ color: 'primary.main' }} />
         <Typography color="text.secondary">{text}</Typography>
       </Stack>
     </Box>
@@ -45,10 +61,20 @@ function JoinPrompt({ code }) {
 
   return (
     <Box sx={{ display: 'grid', placeItems: 'center', minHeight: '100vh', p: 2 }}>
-      <Card sx={{ width: '100%', maxWidth: 380 }}>
+      <Card
+        sx={{
+          width: '100%',
+          maxWidth: 400,
+          borderRadius: 12,
+          bgcolor: 'rgba(16,23,19,0.78)',
+          backdropFilter: 'blur(18px)',
+          border: '1px solid rgba(230,178,60,0.16)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+        }}
+      >
         <CardContent sx={{ p: 4 }}>
-          <Typography variant="h5" sx={{ mb: 1 }}>
-            Join room {code}?
+          <Typography variant="h5" sx={{ mb: 1, fontFamily: '"Sora", "Inter", sans-serif', fontWeight: 700 }}>
+            Join room <Box component="span" sx={{ color: 'primary.main', letterSpacing: 2 }}>{code}</Box>?
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
             You're not seated in this room yet.

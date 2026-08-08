@@ -112,10 +112,10 @@ export default function CardView({ card, sx, onClick, dim = false, faceUp = true
         width: mini ? 48 : { xs: 62, sm: 90 },
         height: mini ? 68 : { xs: 88, sm: 126 },
         borderRadius: 0,
-        border: '1.5px solid #c8c8c8',
+        border: '1px solid rgba(24,20,12,0.3)',
         background: faceUp
-          ? 'linear-gradient(180deg, #fffefa 0%, #f8f6f0 100%)'
-          : 'linear-gradient(145deg, #1a3a2a 0%, #0d1f15 100%)',
+          ? 'radial-gradient(ellipse at 28% 10%, rgba(255,255,255,0.95) 0%, transparent 48%), linear-gradient(180deg, #fffefa 0%, #f7f4ec 100%)'
+          : 'radial-gradient(ellipse at 40% 18%, rgba(42,96,66,0.5) 0%, transparent 60%), linear-gradient(145deg, #173624 0%, #0b1e13 100%)',
         color,
         display: 'flex',
         flexDirection: 'column',
@@ -125,8 +125,8 @@ export default function CardView({ card, sx, onClick, dim = false, faceUp = true
         userSelect: 'none',
         opacity: dim ? 0 : 1,
         boxShadow: onClick
-          ? '0 5px 18px rgba(0,0,0,.5)'
-          : '0 2px 8px rgba(0,0,0,.3)',
+          ? '0 6px 20px rgba(0,0,0,0.55)'
+          : '0 2px 6px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.4)',
         transition: 'transform .15s ease, box-shadow .15s ease, opacity .2s',
         flexShrink: 0,
         position: 'relative',
@@ -149,7 +149,7 @@ export default function CardView({ card, sx, onClick, dim = false, faceUp = true
               zIndex: 1,
             }}
           >
-            <Typography sx={{ fontSize: mini ? 12 : 16, fontWeight: 800, fontFamily: '"Georgia", serif', lineHeight: 1 }}>
+            <Typography sx={{ fontSize: mini ? 12 : 16, fontWeight: 800, fontFamily: '"Sora", "Inter", sans-serif', lineHeight: 1 }}>
               {rankLabel(r)}
             </Typography>
             <Typography sx={{ fontSize: mini ? 9 : 12, lineHeight: 1.3 }}>{sym}</Typography>
@@ -169,7 +169,7 @@ export default function CardView({ card, sx, onClick, dim = false, faceUp = true
               zIndex: 1,
             }}
           >
-            <Typography sx={{ fontSize: mini ? 12 : 16, fontWeight: 800, fontFamily: '"Georgia", serif', lineHeight: 1 }}>
+            <Typography sx={{ fontSize: mini ? 12 : 16, fontWeight: 800, fontFamily: '"Sora", "Inter", sans-serif', lineHeight: 1 }}>
               {rankLabel(r)}
             </Typography>
             <Typography sx={{ fontSize: mini ? 9 : 12, lineHeight: 1.3 }}>{sym}</Typography>
@@ -188,11 +188,18 @@ export default function CardView({ card, sx, onClick, dim = false, faceUp = true
           sx={{
             position: 'absolute',
             inset: mini ? 4 : 7,
-            borderRadius: mini ? 3 : 4,
-            border: '1px solid rgba(0,0,0,0.1)',
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 8px)',
+            borderRadius: mini ? 4 : 6,
+            border: '1px solid rgba(230,178,60,0.5)',
+            background: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0 6px, transparent 6px 12px)',
+            display: 'grid',
+            placeItems: 'center',
+            color: 'rgba(230,178,60,0.55)',
+            fontSize: mini ? 16 : 26,
+            pointerEvents: 'none',
           }}
-        />
+        >
+          ♠
+        </Box>
       )}
     </Box>
   );

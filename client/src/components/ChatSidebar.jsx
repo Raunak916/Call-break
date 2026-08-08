@@ -61,20 +61,36 @@ function ChatContent({ onClose }) {
             <ListItemText primary={<Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>No messages yet. Say hello!</Typography>} />
           </ListItem>
         )}
-        {chatMessages.map((msg, i) => (
-          <ListItem key={i}>
-            <ListItemText
-              primary={
-                <Box component="span">
-                  <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: msg.seat === state.you ? 'primary.main' : 'text.secondary', mr: 0.5 }}>
-                    {msg.name}:
-                  </Typography>
-                  <Typography component="span" variant="body2" sx={{ wordBreak: 'break-word' }}>{msg.text}</Typography>
-                </Box>
-              }
-            />
-          </ListItem>
-        ))}
+        {chatMessages.map((msg, i) => {
+          const own = msg.seat === state.you;
+          return (
+            <ListItem key={i} sx={{ px: 1.5, py: 0.4 }}>
+              <ListItemText
+                primary={
+                  <Box>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: own ? 'primary.main' : 'text.secondary', display: 'block', mb: 0.25, fontSize: 10.5, letterSpacing: 0.04 }}>
+                      {msg.name}
+                    </Typography>
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-block',
+                        px: 1.25,
+                        py: 0.6,
+                        borderRadius: 2.5,
+                        bgcolor: own ? 'rgba(230,178,60,0.09)' : 'rgba(255,255,255,0.05)',
+                        border: '1px solid',
+                        borderColor: own ? 'rgba(230,178,60,0.22)' : 'rgba(255,255,255,0.07)',
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ wordBreak: 'break-word', fontSize: 13.5, lineHeight: 1.35 }}>{msg.text}</Typography>
+                    </Box>
+                  </Box>
+                }
+              />
+            </ListItem>
+          );
+        })}
       </List>
 
       {showEmojis && (
@@ -117,7 +133,7 @@ export default function ChatSidebar() {
   // Desktop: persistent sidebar
   if (!isMobile) {
     return (
-      <Box sx={{ width: 240, height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'rgba(15,25,18,0.95)', borderRight: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+      <Box sx={{ width: { lg: 220, xl: 260 }, height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'rgba(15,25,18,0.95)', borderRight: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
         <ChatContent />
       </Box>
     );

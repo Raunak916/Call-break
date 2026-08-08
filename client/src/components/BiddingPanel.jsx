@@ -29,16 +29,19 @@ export default function BiddingPanel({ state }) {
           ? { bottom: 0, left: 0, right: 0, transform: 'none' }
           : { top: '50%', right: 16, transform: 'translateY(-50%)' }),
         zIndex: 20,
-        bgcolor: 'background.paper',
-        borderRadius: isMobile ? '12px 12px 0 0' : 2,
+        bgcolor: 'rgba(16,23,19,0.85)',
+        backdropFilter: 'blur(18px)',
+        borderRadius: isMobile ? '10px 10px 0 0' : 10,
         border: '1px solid',
-        borderColor: canBid ? 'primary.main' : 'divider',
-        px: { xs: 2, sm: 3 },
+        borderColor: canBid ? 'rgba(230,178,60,0.55)' : 'divider',
+        px: { xs: 2, sm: 2.5, md: 3 },
         py: { xs: 1.5, sm: 2 },
-        minWidth: isMobile ? 'auto' : 220,
+        minWidth: isMobile ? 'auto' : { md: 240, lg: 260 },
         maxWidth: isMobile ? '100%' : 'none',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-        opacity: canBid ? 1 : 0.7,
+        boxShadow: canBid
+          ? '0 18px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(230,178,60,0.14), 0 0 40px rgba(230,178,60,0.08)'
+          : '0 18px 60px rgba(0,0,0,0.55)',
+        opacity: canBid ? 1 : 0.75,
         transition: 'all 0.3s ease',
       }}
     >

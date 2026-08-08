@@ -44,8 +44,9 @@ export default function Game() {
     >
       <GameHeader state={state} />
 
-      {/* Live scoring table — hidden during game over (podium shows standings) */}
-      {!isGameOver && <ScoreTable state={state} />}
+      {/* Live scoring table — hidden during bidding on small screens to give
+          room for the bidding panel and hand; reappears after bidding ends. */}
+      {!isGameOver && !(isMobile && state.phase === 'bidding') && <ScoreTable state={state} />}
 
       {/* Table area */}
       <Box
@@ -56,6 +57,7 @@ export default function Game() {
           justifyContent: 'center',
           position: 'relative',
           minHeight: 0,
+          py: { xs: 0, sm: 1, md: 2 },
         }}
       >
         <Table state={state} />

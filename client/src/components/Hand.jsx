@@ -19,11 +19,11 @@ export default function Hand({ cards, legalSet, myTurn, onPlay }) {
         justifyContent: 'center',
         flexWrap: isMobile ? 'wrap' : 'nowrap',
         gap: isMobile ? '2px' : 0,
-        px: 1,
-        pb: 1,
+        px: { xs: 0.5, sm: 1, md: 1.5 },
+        pb: { xs: 1, sm: 1.5 },
         pt: 0.5,
         overflowX: isMobile ? 'visible' : 'auto',
-        minHeight: isMobile ? 200 : 140,
+        minHeight: isMobile ? { xs: 180, sm: 200 } : { md: 130, lg: 140 },
         maxWidth: isMobile ? '100%' : 'none',
         transition: 'all 0.3s ease',
       }}
@@ -41,7 +41,7 @@ export default function Hand({ cards, legalSet, myTurn, onPlay }) {
               ml: isMobile ? 0 : { sm: -1 },
               mr: 0,
               '&:hover': myTurn && legal
-                ? { transform: 'translateY(-14px) scale(1.05)', boxShadow: '0 8px 16px rgba(0,0,0,.55)', zIndex: 10 }
+                ? { transform: 'translateY(-14px) scale(1.05)', boxShadow: '0 16px 32px rgba(0,0,0,0.6), 0 4px 12px rgba(230,178,60,0.12)', zIndex: 10 }
                 : undefined,
               transform: !legal ? 'translateY(2px)' : undefined,
               opacity: !legal && myTurn ? 0.35 : 1,

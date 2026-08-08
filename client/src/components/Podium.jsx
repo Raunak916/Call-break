@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext.jsx';
 import { playGameOver } from '../lib/sounds.js';
 
-const CONFETTI_COLORS = ['#d4a843', '#c4463a', '#4a7c59', '#6b8cae', '#e8c170', '#f0ece2', '#b8922e', '#cd7f32'];
+const CONFETTI_COLORS = ['#e6b23c', '#3ddc97', '#7cc4ff', '#f78fb3', '#f2c14e', '#f6f3ea', '#c9962e', '#ff8a5c'];
 
 function ConfettiParticle({ delay, left, color, size }) {
   return (
@@ -55,10 +55,10 @@ export default function Podium({ state }) {
   const standings = state.standings || [];
 
   const platforms = [
-    { height: 170, medal: '🥇', color: 'linear-gradient(180deg, #d4a843 0%, #b8922e 100%)', shadow: '0 0 20px rgba(212,168,67,0.3)' },
-    { height: 130, medal: '🥈', color: 'linear-gradient(180deg, #b0b0b0 0%, #8a8a8a 100%)', shadow: '0 0 15px rgba(180,180,180,0.2)' },
-    { height: 100, medal: '🥉', color: 'linear-gradient(180deg, #cd7f32 0%, #a0622e 100%)', shadow: '0 0 12px rgba(205,127,50,0.2)' },
-    { height: 72, medal: '4th', color: 'linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 100%)', shadow: 'none' },
+    { height: { xs: 120, sm: 150, md: 170 }, medal: '🥇', color: 'linear-gradient(180deg, #f6d476 0%, #d9a832 100%)', shadow: '0 0 30px rgba(230,178,60,0.45)' },
+    { height: { xs: 90, sm: 110, md: 130 }, medal: '🥈', color: 'linear-gradient(180deg, #e8e6e0 0%, #a8a69f 100%)', shadow: '0 0 18px rgba(200,200,200,0.25)' },
+    { height: { xs: 70, sm: 85, md: 100 }, medal: '🥉', color: 'linear-gradient(180deg, #e2a571 0%, #b97a45 100%)', shadow: '0 0 14px rgba(217,138,74,0.25)' },
+    { height: { xs: 52, sm: 62, md: 72 }, medal: '4th', color: 'linear-gradient(180deg, #4a4f4a 0%, #2e332e 100%)', shadow: 'none' },
   ];
 
   const handleHome = async () => {
@@ -96,23 +96,26 @@ export default function Podium({ state }) {
       <Typography
         variant="h2"
         sx={{
-          fontFamily: '"Georgia", serif',
-          color: 'primary.main',
+          fontFamily: '"Sora", "Inter", sans-serif',
           mb: 1,
           fontWeight: 700,
-          fontSize: { xs: 28, sm: 36 },
+          fontSize: { xs: 30, sm: 38 },
+          letterSpacing: '-0.01em',
+          background: 'linear-gradient(180deg, #f6d476 0%, #d9a832 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
           animation: 'slideUp 0.6s ease',
           '@keyframes slideUp': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
         }}
       >
-        🏆 Game Over
+        Game Over
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
         {state.totalRounds} rounds completed
       </Typography>
 
       {/* Podium */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: { xs: 1, sm: 2.5 }, mb: 4, px: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: { xs: 0.75, sm: 1.5, md: 2.5 }, mb: { xs: 3, sm: 4 }, px: { xs: 1, sm: 2 } }}>
         {standings.map((player, i) => {
           const p = platforms[i] || platforms[3];
           const isWinner = i === 0;
@@ -133,7 +136,7 @@ export default function Podium({ state }) {
               <Typography
                 variant="body1"
                 sx={{
-                  fontFamily: '"Georgia", serif',
+                  fontFamily: '"Sora", "Inter", sans-serif',
                   fontWeight: 700,
                   color: isWinner ? 'primary.main' : 'text.primary',
                   mb: 0.5,
@@ -161,7 +164,7 @@ export default function Podium({ state }) {
 
               <Box
                 sx={{
-                  width: { xs: 56, sm: 88 },
+                  width: { xs: 52, sm: 72, md: 88 },
                   height: { xs: p.height * 0.7, sm: p.height },
                   borderRadius: '10px 10px 0 0',
                   background: p.color,
@@ -170,7 +173,7 @@ export default function Podium({ state }) {
                   alignItems: 'flex-start',
                   justifyContent: 'center',
                   pt: 1.5,
-                  border: isWinner ? '2px solid rgba(212,168,67,0.4)' : 'none',
+                  border: isWinner ? '2px solid rgba(230,178,60,0.6)' : 'none',
                 }}
               >
                 <Typography sx={{ fontSize: isWinner ? 26 : 20, lineHeight: 1 }}>
@@ -190,7 +193,6 @@ export default function Podium({ state }) {
             size="large"
             onClick={rematch}
             sx={{
-              fontFamily: '"Georgia", serif',
               fontSize: 15,
               px: 4,
               py: 1.2,
@@ -205,7 +207,6 @@ export default function Podium({ state }) {
           size="large"
           onClick={handleHome}
           sx={{
-            fontFamily: '"Georgia", serif',
             fontSize: 15,
             px: 4,
             py: 1.2,

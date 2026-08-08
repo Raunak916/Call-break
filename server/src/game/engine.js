@@ -27,6 +27,7 @@ function createPlayer(seat) {
     connected: false,
     disconnectedAt: null,
     rejoinGraceUntil: null,
+    disconnectedPlayerId: null,
     ready: false,
     score: 0,
     totalTricks: 0,

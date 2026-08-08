@@ -36,13 +36,21 @@ function SeatLabel({ player, position, isTurn, you }) {
     <Box sx={{ position: 'absolute', ...style, textAlign: 'center', pointerEvents: 'none', zIndex: 5, m: 1 }}>
       <Box
         sx={{
-          px: 1.5, py: 0.5, borderRadius: 1,
-          bgcolor: isTurn ? 'primary.main' : botDriven ? 'warning.dark' : 'rgba(0,0,0,0.5)',
-          color: isTurn ? 'common.black' : 'text.secondary',
+          px: 1.5, py: 0.5, borderRadius: 999,
+          background: isTurn
+            ? 'linear-gradient(135deg, #f2c14e, #d9a832)'
+            : botDriven
+              ? 'rgba(251,191,36,0.16)'
+              : 'rgba(8,14,10,0.72)',
+          color: isTurn ? '#1c1507' : 'text.secondary',
           transition: 'all .3s',
-          border: disconnected ? '1px dashed' : 'none',
-          borderColor: 'warning.main',
-          backdropFilter: 'blur(4px)',
+          border: isTurn
+            ? 'none'
+            : disconnected
+              ? '1px dashed rgba(251,191,36,0.7)'
+              : '1px solid rgba(255,255,255,0.08)',
+          boxShadow: isTurn ? '0 4px 18px rgba(230,178,60,0.35)' : 'none',
+          backdropFilter: 'blur(6px)',
         }}
       >
         <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
@@ -127,18 +135,21 @@ export default function Table({ state }) {
     <Box
       sx={{
         position: 'relative',
-        width: { xs: '95vw', sm: 460, md: 540 },
-        height: { xs: '50vw', sm: 320, md: 380 },
-        maxWidth: 580,
-        borderRadius: 4,
-        border: '3px solid rgba(90,60,30,0.6)',
+        width: { xs: '92vw', sm: '80vw', md: 520, lg: 560, xl: 600 },
+        height: { xs: '50vw', sm: '45vw', md: 320, lg: 350, xl: 380 },
+        maxWidth: { xs: '100%', sm: 520, md: 560, lg: 600, xl: 640 },
+        borderRadius: 16,
+        border: '2px solid rgba(230,178,60,0.45)',
         mx: 'auto',
         background: `
-          linear-gradient(180deg, rgba(58,40,22,0.92) 0%, rgba(45,30,18,0.95) 50%, rgba(38,25,15,0.92) 100%),
-          repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255,255,255,0.015) 8px, rgba(255,255,255,0.015) 16px),
-          repeating-linear-gradient(85deg, transparent, transparent 20px, rgba(0,0,0,0.08) 20px, rgba(0,0,0,0.08) 22px)
+          radial-gradient(ellipse at 50% 28%, rgba(40,96,62,0.5) 0%, transparent 58%),
+          radial-gradient(ellipse at 50% 85%, rgba(18,48,33,0.65) 0%, transparent 65%),
+          linear-gradient(180deg, #133321 0%, #0d2318 50%, #0a1c13 100%)
         `,
-        boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.3)',
+        boxShadow:
+          '0 0 0 5px rgba(62,42,20,0.85), 0 0 0 8px rgba(0,0,0,0.32), ' +
+          'inset 0 0 46px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05), ' +
+          '0 16px 50px rgba(0,0,0,0.55)',
       }}
     >
       {layout.map(({ seat, label }) => {

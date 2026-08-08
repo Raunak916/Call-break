@@ -19,48 +19,44 @@ import { SUIT_LABEL } from '../lib/cardUtils.js';
 
 const ROUNDS_LABEL = { 1: '1 round', 3: '3 rounds', 5: '5 rounds' };
 
-function SeatCard({ player, hostSeat, you }) {
+function SeatCard({ player, hostSeat }) {
   const empty = !player.name;
   return (
     <Card
       variant="outlined"
       sx={{
         p: 2,
-        minHeight: 110,
+        minHeight: 100,
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 0.5,
-        opacity: empty ? 0.55 : 1,
+        borderRadius: 6,
+        bgcolor: 'rgba(255,255,255,0.02)',
+        opacity: empty ? 0.5 : 1,
         borderColor: player.isSelf ? 'primary.main' : 'divider',
       }}
     >
-      <Stack direction="row" spacing={0.5} alignItems="center">
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {empty ? '—' : player.name}
-        </Typography>
-        {hostSeat === player.seat && <Chip label="Host" size="small" color="primary" variant="outlined" />}
-      </Stack>
+      <Typography sx={{ fontWeight: 600, fontSize: 15, textAlign: 'center' }}>
+        {empty ? 'Empty seat' : player.name}
+      </Typography>
 
-      {empty ? (
-        <Typography variant="body2" color="text.secondary">
-          Empty seat
-        </Typography>
-      ) : (
-        <>
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" justifyContent="center">
-            {player.isSelf && <Chip label="You" size="small" color="secondary" />}
-            {player.isBot && <Chip label="Bot" size="small" variant="outlined" />}
-            {!player.isBot && !player.connected && <Chip label="Disconnected" size="small" color="warning" variant="outlined" />}
-            {player.ready && !player.isBot && <Chip label="Ready ✓" size="small" color="success" variant="outlined" />}
-          </Stack>
-          {player.isBot && (
-            <Typography variant="caption" color="text.secondary">
-              AI fills this seat
-            </Typography>
+      {!empty && (
+        <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap" justifyContent="center">
+          {player.isSelf && (
+            <Chip label="You" size="small" sx={{ height: 18, '& .MuiChip-label': { px: 0.8, fontSize: 10 } }} color="primary" />
           )}
-        </>
+          {player.isBot && (
+            <Chip label="Bot" size="small" variant="outlined" sx={{ height: 18, '& .MuiChip-label': { px: 0.8, fontSize: 10 } }} />
+          )}
+          {hostSeat === player.seat && (
+            <Chip label="Host" size="small" variant="outlined" sx={{ height: 18, '& .MuiChip-label': { px: 0.8, fontSize: 10 } }} />
+          )}
+          {player.ready && !player.isBot && (
+            <Chip label="Ready" size="small" color="success" variant="outlined" sx={{ height: 18, '& .MuiChip-label': { px: 0.8, fontSize: 10 } }} />
+          )}
+        </Stack>
       )}
     </Card>
   );
@@ -80,9 +76,7 @@ export default function Lobby() {
       await navigator.clipboard.writeText(state.roomCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable (non-secure context) */
-    }
+    } catch { /* */ }
   };
 
   const copyLink = async () => {
@@ -90,9 +84,7 @@ export default function Lobby() {
       await navigator.clipboard.writeText(`${window.location.origin}/room/${state.roomCode}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* ignore */
-    }
+    } catch { /* */ }
   };
 
   const handleLeave = async () => {
@@ -101,37 +93,53 @@ export default function Lobby() {
   };
 
   return (
-    <Box sx={{ maxWidth: 720, mx: 'auto', p: 2, mt: 2 }}>
-      <Card>
-        <CardContent sx={{ p: 3 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="center" spacing={2}>
+    <Box sx={{ maxWidth: { xs: '100%', sm: 600, md: 680, lg: 760 }, mx: 'auto', p: { xs: 2, sm: 3, md: 4 }, mt: { xs: 1, sm: 2, md: 3 } }}>
+      <Card
+        sx={{
+          borderRadius: 10,
+          bgcolor: 'rgba(16,23,19,0.7)',
+          backdropFilter: 'blur(14px)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          boxShadow: '0 16px 50px rgba(0,0,0,0.45)',
+        }}
+      >
+        <CardContent sx={{ p: { xs: 2.5, sm: 3, md: 4 } }}>
+          {/* Room code header */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="center" spacing={2} sx={{ mb: 4 }}>
             <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="overline" color="text.secondary">
+              <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
                 Share this code
               </Typography>
-              <Typography variant="h3" sx={{ letterSpacing: 6, fontWeight: 700 }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  letterSpacing: { xs: 5, sm: 7, md: 8 },
+                  fontWeight: 700,
+                  fontFamily: '"Sora", "Inter", sans-serif',
+                  color: 'primary.main',
+                  fontSize: { xs: 24, sm: 28, md: 32, lg: 34 },
+                }}
+              >
                 {state.roomCode}
               </Typography>
             </Box>
-
             <Stack direction="row" spacing={1}>
               <Tooltip title={copied ? 'Copied!' : 'Copy code'}>
-                <IconButton onClick={copyCode}>
-                  <ContentCopyIcon />
+                <IconButton onClick={copyCode} sx={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <ContentCopyIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Button variant="outlined" onClick={copyLink}>
+              <Button variant="outlined" onClick={copyLink} size="small">
                 {copied ? 'Copied!' : 'Copy invite link'}
               </Button>
             </Stack>
           </Stack>
 
-          <Typography color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-            {humans.length} of 4 players · {ROUNDS_LABEL[state.totalRounds] || `${state.totalRounds} rounds`} ·{' '}
-            {SUIT_LABEL.S} trump
+          <Typography color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+            {humans.length} of 4 players · {ROUNDS_LABEL[state.totalRounds]} · {SUIT_LABEL.S} trump
           </Typography>
 
-          <Grid container spacing={1.5} sx={{ mt: 1 }}>
+          <Grid container spacing={1.5} sx={{ mb: 4 }}>
             {state.players.map((p) => (
               <Grid key={p.seat} size={{ xs: 6, sm: 3 }}>
                 <SeatCard player={p} hostSeat={state.hostSeat} />
@@ -139,7 +147,7 @@ export default function Lobby() {
             ))}
           </Grid>
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 3 }} justifyContent="center">
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="center">
             <Button
               variant={me?.ready ? 'contained' : 'outlined'}
               color={me?.ready ? 'success' : 'primary'}
@@ -160,13 +168,8 @@ export default function Lobby() {
           </Stack>
 
           {isHost && !canStart && (
-            <Alert severity="info" sx={{ mt: 2 }}>
+            <Alert severity="info" sx={{ mt: 3 }}>
               Waiting for everyone to be ready before starting.
-            </Alert>
-          )}
-          {!isHost && humans.length >= 1 && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              {humans.find((p) => p.seat === state.hostSeat)?.name} can start the game once everyone is ready.
             </Alert>
           )}
         </CardContent>

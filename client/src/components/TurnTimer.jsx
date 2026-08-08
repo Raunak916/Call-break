@@ -69,7 +69,10 @@ export default function TurnTimer({ durationMs = 15000, isMine = false }) {
           strokeDasharray={CIRCUMFERENCE}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset .15s linear, stroke .3s' }}
+          style={{
+            transition: 'stroke-dashoffset .15s linear, stroke .3s',
+            filter: isMine && !low ? 'drop-shadow(0 0 5px rgba(230,178,60,0.55))' : 'none',
+          }}
         />
       </svg>
       <Box
@@ -88,6 +91,7 @@ export default function TurnTimer({ durationMs = 15000, isMine = false }) {
             color,
             fontSize: 18,
             lineHeight: 1,
+            fontVariantNumeric: 'tabular-nums',
             animation: low ? 'pulse 0.6s ease-in-out infinite' : 'none',
             '@keyframes pulse': {
               '0%, 100%': { opacity: 1 },

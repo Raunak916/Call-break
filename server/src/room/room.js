@@ -133,6 +133,7 @@ export class Room {
     p.connected = true;
     p.disconnectedAt = null;
     p.rejoinGraceUntil = null;
+    p.disconnectedPlayerId = null;
 
     if (this.hostSeat == null) this.hostSeat = seat;
     return { seat, isHost: this.hostSeat === seat, claimedBot, inherited };
@@ -140,13 +141,22 @@ export class Room {
 
   findSeatByPlayerId(playerId) {
     if (!playerId) return null;
-    const p = this.state.players.find((pl) => pl.playerId === playerId);
-    if (!p || p.connected || p.isBot) return null;
-    if (p.rejoinGraceUntil && Date.now() < p.rejoinGraceUntil) return p.seat;
+    // 1. During grace window — seat still has the original playerId.
+    const graceSeat = this.state.players.find(
+      (pl) => pl.playerId === playerId && !pl.connected,
+    );
+    if (graceSeat && graceSeat.rejoinGraceUntil && Date.now() < graceSeat.rejoinGraceUntil) {
+      return graceSeat.seat;
+    }
+    // 2. Post-grace — seat became a permanent bot; match via disconnectedPlayerId.
+    const botSeat = this.state.players.find(
+      (pl) => pl.disconnectedPlayerId === playerId && pl.isBot && !pl.connected,
+    );
+    if (botSeat) return botSeat.seat;
     return null;
   }
 
-  /** Reclaim a seat within its grace window. Bot actions taken meanwhile stay. */
+  /** Reclaim a seat (within grace or post-grace for disconnected humans). */
   reclaim(seat, socketId) {
     const p = this.state.players[seat];
     p.socketId = socketId;
@@ -155,6 +165,7 @@ export class Room {
     p.rejoinGraceUntil = null;
     p.botControlled = false;
     p.isBot = false;
+    p.disconnectedPlayerId = null;
     this.clearTimer(`bot-${seat}`);
     this.clearTimer(`grace-${seat}`);
     this.clearTimer(`afk-${seat}`);
@@ -264,6 +275,8 @@ export class Room {
     p.socketId = null;
     p.connected = false;
     p.disconnectedAt = Date.now();
+    // Preserve the original human's ID so they can reclaim the seat after grace.
+    p.disconnectedPlayerId = p.playerId;
 
     if (this.state.phase === 'lobby') {
       // Reserved during grace so a reconnect can reclaim it.
@@ -303,6 +316,7 @@ export class Room {
       p.connected = false;
       p.disconnectedAt = null;
       p.rejoinGraceUntil = null;
+      p.disconnectedPlayerId = null;
       p.ready = false;
     } else {
       // Become a permanent bot so the game stays 4-handed.
@@ -312,6 +326,7 @@ export class Room {
       p.playerId = null;
       p.socketId = null;
       p.disconnectedAt = null;
+      p.disconnectedPlayerId = null;
       p.rejoinGraceUntil = null;
     }
 

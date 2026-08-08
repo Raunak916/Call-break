@@ -13,7 +13,7 @@ export default function GlobalOverlays() {
     <>
       {!connected && (
         <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 2000 }}>
-          <Alert severity="warning" sx={{ borderRadius: 0, justifyContent: 'center' }}>
+          <Alert severity="warning" variant="filled" sx={{ borderRadius: 0, justifyContent: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
             Connection lost — reconnecting… your seat is held for a short grace period.
           </Alert>
         </Box>

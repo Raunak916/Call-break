@@ -23,8 +23,8 @@ const ROUND_MARKS = [
 ];
 
 /**
- * Casino-themed Home screen. Subtle suit-pattern background,
- * gold accents, premium serif typography.
+ * Clean, spacious home screen — scales from phone to ultrawide.
+ * Spacing widens with screen size; card stays centred and readable.
  */
 export default function Home() {
   const { createRoom, joinRoom, lastError, clearError } = useGame();
@@ -56,74 +56,43 @@ export default function Home() {
         minHeight: '100vh',
         display: 'grid',
         placeItems: 'center',
-        p: 2,
-        position: 'relative',
-        overflow: 'hidden',
-        /* Casino green felt background with subtle suit pattern */
+        p: { xs: 2, sm: 3, md: 4, lg: 5 },
         background: `
-          radial-gradient(ellipse at 30% 20%, rgba(30,60,40,0.6) 0%, transparent 50%),
-          radial-gradient(ellipse at 70% 80%, rgba(30,60,40,0.4) 0%, transparent 50%),
-          linear-gradient(160deg, #0f1f16 0%, #1a2b22 30%, #142219 60%, #0d1a12 100%)
+          radial-gradient(ellipse at 50% 40%, rgba(24,68,44,0.35) 0%, transparent 60%),
+          linear-gradient(170deg, #0c1710 0%, #0a0e0b 50%, #0b130e 100%)
         `,
       }}
     >
-      {/* Decorative suit symbols — faded in background */}
-      {['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣'].map((s, i) => (
-        <Typography
-          key={i}
-          sx={{
-            position: 'absolute',
-            fontSize: { xs: 80, sm: 120 },
-            opacity: 0.025,
-            color: i % 2 === 0 ? '#f0ece2' : '#d4a843',
-            top: `${10 + (i * 13) % 80}%`,
-            left: `${5 + (i * 17) % 85}%`,
-            pointerEvents: 'none',
-            transform: `rotate(${-15 + i * 20}deg)`,
-          }}
-        >
-          {s}
-        </Typography>
-      ))}
-
-      {/* Gold line accent */}
-      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, transparent, #d4a843, transparent)' }} />
-
       <Card
         sx={{
           width: '100%',
-          maxWidth: 440,
-          position: 'relative',
-          zIndex: 1,
-          bgcolor: 'rgba(26,43,34,0.92)',
-          border: '1px solid rgba(212,168,67,0.2)',
-          backdropFilter: 'blur(12px)',
-          mx: 2,
+          maxWidth: { xs: '100%', sm: 380, md: 400, lg: 420, xl: 440 },
+          bgcolor: 'rgba(16,23,19,0.8)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          backdropFilter: 'blur(16px)',
         }}
       >
-        <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+        <CardContent sx={{ p: { xs: 3, sm: 3.5, md: 4, lg: 5 } }}>
           {/* Title */}
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Box sx={{ textAlign: 'center', mb: { xs: 4, sm: 5, lg: 6 } }}>
             <Typography
-              variant="h2"
+              variant="h3"
               sx={{
-                fontFamily: '"Georgia", serif',
+                fontFamily: '"Sora", "Inter", sans-serif',
                 fontWeight: 700,
-                fontSize: { xs: 32, sm: 38 },
-                color: '#f0ece2',
-                letterSpacing: 2,
-                mb: 0.5,
+                fontSize: { xs: 24, sm: 26, md: 28, lg: 30, xl: 32 },
+                color: 'primary.main',
+                letterSpacing: '-0.01em',
               }}
             >
-              ♠ Call Break ♠
+              Call Break
             </Typography>
-            <Box sx={{ width: 60, height: 2, bgcolor: '#d4a843', mx: 'auto', mb: 1.5 }} />
-            <Typography variant="body2" sx={{ color: '#a8b8ae', fontStyle: 'italic' }}>
-              Trick-taking card game with friends
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: 13, sm: 14 } }}>
+              Trick-taking card game · 4 players · ♠ trumps
             </Typography>
           </Box>
 
-          <Stack spacing={2.5}>
+          <Stack spacing={{ xs: 2.5, sm: 3, lg: 3.5 }}>
             <TextField
               label="Your name"
               value={name}
@@ -131,12 +100,12 @@ export default function Home() {
               fullWidth
               autoComplete="nickname"
               slotProps={{ htmlInput: { maxLength: 20 } }}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              size="small"
             />
 
             <Box>
-              <Typography variant="caption" sx={{ color: '#a8b8ae', mb: 0.5, display: 'block', fontStyle: 'italic' }}>
-                Rounds: <strong style={{ color: '#d4a843' }}>{rounds}</strong>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+                Rounds: <strong style={{ color: '#e6b23c' }}>{rounds}</strong>
               </Typography>
               <Slider
                 value={rounds}
@@ -146,34 +115,25 @@ export default function Home() {
                 min={1}
                 max={5}
                 valueLabelDisplay="off"
+                size="small"
                 sx={{
-                  color: '#d4a843',
-                  '& .MuiSlider-markLabel': { fontFamily: '"Georgia", serif', fontWeight: 700, fontSize: 14, color: '#a8b8ae' },
-                  '& .MuiSlider-mark': { height: 8, width: 2, bgcolor: '#d4a843' },
+                  '& .MuiSlider-markLabel': { fontWeight: 600, fontSize: 13, color: 'text.secondary' },
                 }}
               />
             </Box>
 
             <Button
               variant="contained"
-              size="large"
               fullWidth
               disabled={busy != null}
               onClick={handleCreate}
-              sx={{
-                py: 1.5,
-                fontFamily: '"Georgia", serif',
-                fontSize: 16,
-                fontWeight: 700,
-                letterSpacing: 2,
-                borderRadius: 2,
-              }}
+              sx={{ py: { xs: 1.2, lg: 1.4 }, fontSize: { xs: 14, sm: 15 } }}
             >
               {busy === 'create' ? 'Creating…' : 'Create Room'}
             </Button>
 
-            <Divider sx={{ borderColor: 'rgba(212,168,67,0.2)' }}>
-              <Typography variant="caption" sx={{ color: '#a8b8ae', fontStyle: 'italic' }}>or join</Typography>
+            <Divider sx={{ my: { xs: 0.5, lg: 1 }, borderColor: 'rgba(255,255,255,0.08)' }}>
+              <Typography variant="caption" color="text.secondary">or join</Typography>
             </Divider>
 
             <Stack direction="row" spacing={1}>
@@ -185,14 +145,14 @@ export default function Home() {
                 placeholder="e.g. K7QM"
                 slotProps={{ htmlInput: { maxLength: 4 } }}
                 onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                size="small"
+                sx={{ '& input': { letterSpacing: 2, textTransform: 'uppercase' } }}
               />
               <Button
                 variant="outlined"
-                size="large"
                 disabled={busy != null || code.length !== 4}
                 onClick={handleJoin}
-                sx={{ px: 3, fontFamily: '"Georgia", serif', fontWeight: 700, borderRadius: 2 }}
+                sx={{ px: { xs: 2.5, sm: 3 } }}
               >
                 {busy === 'join' ? '…' : 'Join'}
               </Button>
@@ -206,9 +166,6 @@ export default function Home() {
           </Stack>
         </CardContent>
       </Card>
-
-      {/* Bottom gold line */}
-      <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, transparent, #d4a843, transparent)' }} />
     </Box>
   );
 }

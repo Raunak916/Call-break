@@ -1,22 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { socket, emitAck } from './socket.js';
-import { storage } from './lib/storage.js';
-import { friendlyError } from './lib/messages.js';
+import { socket, emitAck } from '../socket.js';
+import { storage } from '../lib/storage.js';
+import { friendlyError } from '../lib/messages.js';
 
-/**
- * Single source of truth for the client. Holds the latest authoritative
- * snapshot (`room:state`), the socket's connection status, identity, and every
- * action the UI can take. Screens read via useGame().
- */
-const GameContext = createContext(null);
+const UnoContext = createContext(null);
 
-export function GameProvider({ children }) {
-  const [state, setState] = useState(null); // latest room:state snapshot, or null
+export function UnoProvider({ children }) {
+  const [state, setState] = useState(null);
   const [connected, setConnected] = useState(socket.connected);
-  const [notice, setNotice] = useState(null); // latest game:notice
-  const [lastError, setLastError] = useState(null); // latest ack error code
-  const [chatMessages, setChatMessages] = useState([]); // room chat messages
-  const sessionRef = useRef(storage.session); // live identity, survives renders
+  const [notice, setNotice] = useState(null);
+  const [lastError, setLastError] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const sessionRef = useRef(storage.session);
   const rejoiningRef = useRef(false); // guards overlapping rejoin attempts
 
   const rememberSession = useCallback((s) => {
@@ -28,11 +23,10 @@ export function GameProvider({ children }) {
   const clearNotice = useCallback(() => setNotice(null), []);
 
   /**
-   * Reclaim this browser's seat after a reload / socket drop. Retries a few
-   * times: right after a reload the server may still be closing the old socket
-   * (it now handles that takeover, but retry as a safety net). If the seat is
-   * definitively gone, drop the stale session so the room route offers a fresh
-   * join instead of hanging on "Reconnecting…" forever.
+   * Reclaim this browser's UNO seat after a reload / socket drop. Retries a few
+   * times (the server may still be closing the old socket right after a reload).
+   * If the seat is definitively gone, drop the stale session so the room route
+   * offers a fresh join instead of hanging on "Reconnecting…" forever.
    */
   const rejoinSession = useCallback(async () => {
     if (rejoiningRef.current) return;
@@ -40,10 +34,8 @@ export function GameProvider({ children }) {
     try {
       for (let attempt = 0; attempt < 5; attempt++) {
         const s = sessionRef.current;
-        // Bail if the session changed (user left / joined elsewhere) mid-retry.
-        if (!s || !s.roomCode || !s.playerId) return;
-        // The UNO context owns UNO sessions; only reclaim call-break ones here.
-        if (s.gameType && s.gameType !== 'call-break') return;
+        if (!s || !s.roomCode || !s.playerId) return; // session changed
+        if (s.gameType !== 'uno') return; // the call-break context owns it
         try {
           const ack = await emitAck('room:rejoin', { code: s.roomCode, playerId: s.playerId });
           if (ack.ok) return;
@@ -92,7 +84,7 @@ export function GameProvider({ children }) {
 
   const remember = useCallback(
     (ack, name) => {
-      rememberSession({ roomCode: ack.roomCode, playerId: ack.playerId, name, gameType: 'call-break' });
+      rememberSession({ roomCode: ack.roomCode, playerId: ack.playerId, name, gameType: 'uno' });
       return ack;
     },
     [rememberSession],
@@ -102,13 +94,11 @@ export function GameProvider({ children }) {
     async (name, opts) => {
       const ack = await emitAck('room:create', {
         name,
+        gameType: 'uno',
         totalRounds: opts?.totalRounds,
-        scoringVariant: opts?.scoringVariant,
+        numSeats: opts?.numSeats,
       });
-      if (ack.error) {
-        setLastError(ack.error);
-        return ack;
-      }
+      if (ack.error) { setLastError(ack.error); return ack; }
       return remember(ack, name);
     },
     [remember],
@@ -117,10 +107,7 @@ export function GameProvider({ children }) {
   const joinRoom = useCallback(
     async (code, name) => {
       const ack = await emitAck('room:join', { code, name });
-      if (ack.error) {
-        setLastError(ack.error);
-        return ack;
-      }
+      if (ack.error) { setLastError(ack.error); return ack; }
       return remember(ack, name);
     },
     [remember],
@@ -134,7 +121,7 @@ export function GameProvider({ children }) {
           roomCode: code,
           playerId,
           name: sessionRef.current?.name || '',
-          gameType: sessionRef.current?.gameType || 'call-break',
+          gameType: 'uno',
         });
       } else {
         setLastError(ack.error);
@@ -163,26 +150,26 @@ export function GameProvider({ children }) {
     setState(null);
   }, [rememberSession]);
 
-  const nextRound = useCallback(async () => {
-    const ack = await emitAck('room:nextRound');
+  const playCard = useCallback(async (card) => {
+    const ack = await emitAck('uno:play-card', { card });
     if (ack.error) setLastError(ack.error);
     return ack;
   }, []);
 
-  const rematch = useCallback(async () => {
-    const ack = await emitAck('room:rematch');
+  const drawCard = useCallback(async () => {
+    const ack = await emitAck('uno:draw-card');
     if (ack.error) setLastError(ack.error);
     return ack;
   }, []);
 
-  const bid = useCallback(async (n) => {
-    const ack = await emitAck('game:bid', { bid: n });
+  const callUno = useCallback(async () => {
+    const ack = await emitAck('uno:call-uno');
     if (ack.error) setLastError(ack.error);
     return ack;
   }, []);
 
-  const play = useCallback(async (card) => {
-    const ack = await emitAck('game:play', { card });
+  const chooseColor = useCallback(async (color) => {
+    const ack = await emitAck('uno:choose-color', { color });
     if (ack.error) setLastError(ack.error);
     return ack;
   }, []);
@@ -196,55 +183,25 @@ export function GameProvider({ children }) {
   const value = useMemo(() => {
     const me = state?.players?.[state.you] ?? null;
     return {
-      socket,
-      state,
-      connected,
-      notice,
-      lastError,
-      chatMessages,
-      me,
+      socket, state, connected, notice, lastError, chatMessages, me,
       isHost: state != null && state.hostSeat === state.you,
       friendlyError,
-      createRoom,
-      joinRoom,
-      rejoin,
-      ready,
-      startGame,
-      leaveRoom,
-      nextRound,
-      rematch,
-      bid,
-      play,
-      sendChat,
-      clearError,
-      clearNotice,
+      createRoom, joinRoom, rejoin, ready, startGame, leaveRoom,
+      playCard, drawCard, callUno, chooseColor,
+      sendChat, clearError, clearNotice,
     };
   }, [
-    state,
-    connected,
-    notice,
-    lastError,
-    chatMessages,
-    createRoom,
-    joinRoom,
-    rejoin,
-    ready,
-    startGame,
-    leaveRoom,
-    nextRound,
-    rematch,
-    bid,
-    play,
-    sendChat,
-    clearError,
-    clearNotice,
+    state, connected, notice, lastError, chatMessages,
+    createRoom, joinRoom, rejoin, ready, startGame, leaveRoom,
+    playCard, drawCard, callUno, chooseColor,
+    sendChat, clearError, clearNotice,
   ]);
 
-  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
+  return <UnoContext.Provider value={value}>{children}</UnoContext.Provider>;
 }
 
-export function useGame() {
-  const ctx = useContext(GameContext);
-  if (!ctx) throw new Error('useGame must be used inside <GameProvider>');
+export function useUno() {
+  const ctx = useContext(UnoContext);
+  if (!ctx) throw new Error('useUno must be used inside <UnoProvider>');
   return ctx;
 }

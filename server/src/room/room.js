@@ -12,6 +12,17 @@ import {
 } from '../game/engine.js';
 import { createHeuristicBot } from '../game/bots/heuristicBot.js';
 import { buildCtx } from '../game/bots/baseBot.js';
+
+// UNO imports
+import {
+  createState as createUnoState,
+  startRound as unoStartRound,
+  applyPlayCard,
+  applyDrawCard,
+  applyCallUno,
+  applyChooseColor,
+} from '../uno/engine.js';
+import { createUnoBot } from '../uno/bots/unoBot.js';
 import { serializeState } from '../network/serialize.js';
 import {
   GRACE_PERIOD_MS,
@@ -24,22 +35,35 @@ export class Room {
    * @param {object} opts
    * @param {string} opts.code
    * @param {import('socket.io').Server} opts.io
+   * @param {string} [opts.gameType] — 'call-break' (default) or 'uno'
    * @param {number} [opts.totalRounds]
+   * @param {number} [opts.numSeats] — for UNO: 2-6 (default 4)
    * @param {string} [opts.scoringVariant]
    * @param {(seat:number)=>object} [opts.botProfileFactory] for tests: fast bots
    */
-  constructor({ code, io, totalRounds, scoringVariant, botProfileFactory }) {
+  constructor({ code, io, gameType = 'call-break', totalRounds, numSeats, scoringVariant, botProfileFactory }) {
     this.code = code;
     this.io = io;
-    this.state = createState({ totalRounds, scoringVariant });
+    this.gameType = gameType;
+
+    if (gameType === 'uno') {
+      this.state = createUnoState({ totalRounds, numSeats: numSeats || 4 });
+    } else {
+      this.state = createState({ totalRounds, scoringVariant });
+    }
+
     this.hostSeat = null;
     this.destroyed = false;
     this.createdAt = Date.now();
     this.lastActivityAt = Date.now();
     this.timers = new Map();
-    this.botProfiles = Array.from({ length: 4 }, (_, i) =>
-      (botProfileFactory || createHeuristicBot)(i),
-    );
+
+    const seats = this.state.players.length;
+    const botFactory = gameType === 'uno'
+      ? (botProfileFactory || (() => createUnoBot()))
+      : (botProfileFactory || createHeuristicBot);
+    this.botProfiles = Array.from({ length: seats }, (_, i) => botFactory(i));
+
     // Shared bidding window length; overridable in tests (like botProfiles).
     this.turnTimeoutMs = TURN_TIMEOUT_MS;
   }
@@ -153,12 +177,29 @@ export class Room {
       (pl) => pl.disconnectedPlayerId === playerId && pl.isBot && !pl.connected,
     );
     if (botSeat) return botSeat.seat;
-    return null;
+    // 3. Reload race — on a page reload the player's NEW socket can connect and
+    //    rejoin before the server has processed the OLD socket's disconnect, so
+    //    the seat is still marked `connected` to a socket that is about to die.
+    //    The new socket takes the seat over; reclaim() evicts the old socket.
+    const liveSeat = this.state.players.find(
+      (pl) => pl.playerId === playerId && pl.connected,
+    );
+    return liveSeat ? liveSeat.seat : null;
   }
 
-  /** Reclaim a seat (within grace or post-grace for disconnected humans). */
+  /** Reclaim a seat (within grace, post-grace, or mid-reload-takeover). */
   reclaim(seat, socketId) {
     const p = this.state.players[seat];
+    const previousSocketId = p.socketId;
+    // Reload race: the seat may still be bound to the unloaded page's socket.
+    // Evict it so it can't keep acting or receiving broadcasts.
+    if (previousSocketId && previousSocketId !== socketId) {
+      const oldSocket = this.io.sockets?.sockets?.get(previousSocketId);
+      if (oldSocket) {
+        oldSocket.leave(this.code);
+        oldSocket.data = { code: null, seat: null, playerId: null };
+      }
+    }
     p.socketId = socketId;
     p.connected = true;
     p.disconnectedAt = null;
@@ -186,9 +227,8 @@ export class Room {
     if (state.phase !== 'lobby') return { error: 'WRONG_PHASE' };
     if (seat !== this.hostSeat) return { error: 'NOT_HOST' };
 
-    const humans = state.players.filter((p) => !p.isBot);
+    const humans = state.players.filter((p) => p.name && !p.isBot);
     if (humans.length < 1) return { error: 'NOT_ENOUGH_PLAYERS' };
-    // A single human can start alone; with 2+ humans everyone connected must be ready.
     if (humans.length >= 2 && humans.some((p) => p.connected && !p.ready)) {
       return { error: 'NOT_ALL_READY' };
     }
@@ -200,7 +240,12 @@ export class Room {
       }
     }
 
-    startRound(state);
+    if (this.gameType === 'uno') {
+      unoStartRound(state);
+    } else {
+      startRound(state);
+    }
+
     this.touch();
     this.broadcast();
     this.pump();
@@ -225,6 +270,61 @@ export class Room {
     if (this.state.phase !== 'playing') return { error: 'WRONG_PHASE' };
     try {
       applyPlay(this.state, seat, card);
+    } catch (e) {
+      return { error: e.code };
+    }
+    this.touch();
+    this.clearTimer(`afk-${seat}`);
+    this.broadcast();
+    this.pump();
+    return { ok: true };
+  }
+
+  // ---------- UNO actions ----------
+  playCard(seat, card) {
+    if (this.gameType !== 'uno') return { error: 'WRONG_GAME' };
+    try {
+      applyPlayCard(this.state, seat, card);
+    } catch (e) {
+      return { error: e.code };
+    }
+    this.touch();
+    this.clearTimer(`afk-${seat}`);
+    this.broadcast();
+    this.pump();
+    return { ok: true };
+  }
+
+  drawCard(seat) {
+    if (this.gameType !== 'uno') return { error: 'WRONG_GAME' };
+    try {
+      applyDrawCard(this.state, seat);
+    } catch (e) {
+      return { error: e.code };
+    }
+    this.touch();
+    this.clearTimer(`afk-${seat}`);
+    this.broadcast();
+    this.pump();
+    return { ok: true };
+  }
+
+  callUno(seat) {
+    if (this.gameType !== 'uno') return { error: 'WRONG_GAME' };
+    try {
+      applyCallUno(this.state, seat);
+    } catch (e) {
+      return { error: e.code };
+    }
+    this.touch();
+    this.broadcast();
+    return { ok: true };
+  }
+
+  chooseColor(seat, color) {
+    if (this.gameType !== 'uno') return { error: 'WRONG_GAME' };
+    try {
+      applyChooseColor(this.state, seat, color);
     } catch (e) {
       return { error: e.code };
     }
@@ -372,12 +472,20 @@ export class Room {
    */
   pump() {
     const state = this.state;
+
     if (state.phase === 'roundEnd') {
       if (!this.timers.has('roundEnd')) {
         this.setTimer('roundEnd', ROUND_END_AUTO_ADVANCE_MS, () => this.autoAdvanceRound());
       }
       return;
     }
+
+    if (this.gameType === 'uno') {
+      this.pumpUno();
+      return;
+    }
+
+    // Call Break specific
     if (state.phase === 'bidding') {
       this.pumpBidding();
       return;
@@ -395,6 +503,26 @@ export class Room {
     } else if (player.connected) {
       if (!this.timers.has(`afk-${seat}`)) {
         this.setTimer(`afk-${seat}`, TURN_TIMEOUT_MS, () => this.afkMove(seat));
+      }
+    }
+  }
+
+  /** UNO-specific pump: drive bots and AFK for the current UNO player. */
+  pumpUno() {
+    const state = this.state;
+    if (state.phase !== 'playing') return;
+
+    const seat = state.currentPlayerSeat;
+    const player = state.players[seat];
+
+    if (player.isBot || player.botControlled) {
+      if (!this.timers.has(`bot-${seat}`)) {
+        const delay = this.botProfiles[seat].delayMs();
+        this.setTimer(`bot-${seat}`, delay, () => this.runUnoBotAction(seat));
+      }
+    } else if (player.connected) {
+      if (!this.timers.has(`afk-${seat}`)) {
+        this.setTimer(`afk-${seat}`, TURN_TIMEOUT_MS, () => this.unoAfkMove(seat));
       }
     }
   }
@@ -480,6 +608,68 @@ export class Room {
       else return;
     } catch (e) {
       return; // stale — the turn passed
+    }
+    this.broadcast();
+    this.pump();
+  }
+
+  /** UNO bot action: choose and execute a move. */
+  runUnoBotAction(seat) {
+    if (this.destroyed) return;
+    const state = this.state;
+    const player = state.players[seat];
+    if (!(player.isBot || player.botControlled)) return;
+    if (state.phase !== 'playing') return;
+
+    try {
+      const bot = this.botProfiles[seat];
+      const action = bot.chooseAction(state, seat);
+
+      if (action.type === 'play') {
+        applyPlayCard(state, seat, action.card);
+        // If wild was played, choose color.
+        if (state.currentColor === 'wild') {
+          const color = bot.chooseColor(player.hand);
+          applyChooseColor(state, seat, color);
+        }
+      } else if (action.type === 'draw') {
+        applyDrawCard(state, seat);
+      } else if (action.type === 'callUno') {
+        applyCallUno(state, seat);
+      }
+    } catch (e) {
+      console.error(`[room ${this.code}] UNO bot action failed:`, e);
+      return;
+    }
+    this.broadcast();
+    this.pump();
+  }
+
+  /** UNO AFK move: auto-play for a disconnected human. */
+  unoAfkMove(seat) {
+    if (this.destroyed) return;
+    const state = this.state;
+    const player = state.players[seat];
+    if (!player.connected || player.isBot) return;
+    if (state.phase !== 'playing') return;
+
+    try {
+      const bot = this.botProfiles[seat];
+      const action = bot.chooseAction(state, seat);
+
+      if (action.type === 'play') {
+        applyPlayCard(state, seat, action.card);
+        if (state.currentColor === 'wild') {
+          const color = bot.chooseColor(player.hand);
+          applyChooseColor(state, seat, color);
+        }
+      } else if (action.type === 'draw') {
+        applyDrawCard(state, seat);
+      } else if (action.type === 'callUno') {
+        applyCallUno(state, seat);
+      }
+    } catch (e) {
+      return;
     }
     this.broadcast();
     this.pump();

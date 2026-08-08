@@ -14,11 +14,11 @@ const GAMES = [
   {
     id: 'uno',
     title: 'UNO',
-    description: 'Classic shedding card game · 2-10 players',
-    route: null,
+    description: 'Classic shedding card game · 2-6 players',
+    route: '/uno',
     icon: 'UNO',
-    color: 'text.disabled',
-    available: false,
+    color: '#d32f2f',
+    available: true,
   },
 ];
 
@@ -76,7 +76,7 @@ export default function GameSelector() {
               transition: 'all 0.2s ease',
               ...(game.available && {
                 '&:hover': {
-                  borderColor: 'rgba(230,178,60,0.4)',
+                  borderColor: game.id === 'uno' ? 'rgba(211,47,47,0.4)' : 'rgba(230,178,60,0.4)',
                   boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
                   transform: 'translateY(-2px)',
                 },

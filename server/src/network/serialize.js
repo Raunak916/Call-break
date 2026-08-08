@@ -8,13 +8,13 @@
  * @returns {object} the snapshot the viewer's client renders from
  */
 export function serializeState(state, viewerSeat, { roomCode, hostSeat }) {
-  return {
+  const base = {
     version: state.version,
     roomCode,
+    gameType: state.gameType || 'call-break',
     phase: state.phase,
     round: state.round,
     totalRounds: state.totalRounds,
-    scoringVariant: state.scoringVariant,
     hostSeat,
     you: viewerSeat,
 
@@ -25,22 +25,45 @@ export function serializeState(state, viewerSeat, { roomCode, hostSeat }) {
       botControlled: p.botControlled,
       connected: p.connected,
       ready: p.ready,
-      score: p.score,
-      totalTricks: p.totalTricks,
-      roundHistory: p.roundHistory,
-      bid: p.bid,
-      tricksWon: p.tricksWon,
       handCount: p.hand.length,
-      // Only your own hand is visible.
       hand: p.seat === viewerSeat ? p.hand : null,
       isSelf: p.seat === viewerSeat,
     })),
 
-    // Bids, table cards, and scores are all public.
-    bidding: state.bidding,
-    play: state.play,
-    roundScores: state.roundScores,
-    standings: state.standings,
     gameOver: state.phase === 'gameOver',
   };
+
+  // Call Break-specific fields
+  if (state.gameType !== 'uno') {
+    base.scoringVariant = state.scoringVariant;
+    base.players = base.players.map((p, i) => ({
+      ...p,
+      score: state.players[i].score,
+      totalTricks: state.players[i].totalTricks,
+      roundHistory: state.players[i].roundHistory,
+      bid: state.players[i].bid,
+      tricksWon: state.players[i].tricksWon,
+    }));
+    base.bidding = state.bidding;
+    base.play = state.play;
+    base.roundScores = state.roundScores;
+    base.standings = state.standings;
+  }
+
+  // UNO-specific fields
+  if (state.gameType === 'uno') {
+    base.currentColor = state.currentColor;
+    base.currentPlayerSeat = state.currentPlayerSeat;
+    base.direction = state.direction;
+    base.stack = state.stack;
+    base.lastAction = state.lastAction;
+    base.drawPileCount = state.drawPile.length;
+    base.topDiscard = state.discardPile[state.discardPile.length - 1] || null;
+    base.players = base.players.map((p, i) => ({
+      ...p,
+      calledUno: state.players[i].calledUno,
+    }));
+  }
+
+  return base;
 }

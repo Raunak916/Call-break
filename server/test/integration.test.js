@@ -338,6 +338,43 @@ test('disconnect: rejoin reclaims seat even after grace expires (post-grace reco
   assert.equal(reclaimed.players[1].name, 'Bob');
 });
 
+test('reload race: a fresh socket reclaims the seat even while the old one is still connected', async () => {
+  const { a, aStates, roomCode } = await createHostedRoom();
+  const { socket: b } = await connect();
+  const jb = await emitAck(b, 'room:join', { code: roomCode, name: 'Bob' });
+
+  await emitAck(a, 'room:ready', { ready: true });
+  await emitAck(b, 'room:ready', { ready: true });
+  assert.equal((await emitAck(a, 'room:start')).ok, true);
+  await waitState(aStates, (s) => s.phase === 'bidding');
+
+  // Simulate a page reload: Bob's OLD socket is still connected server-side
+  // (the unloaded page's disconnect has not been processed yet) while a fresh
+  // socket connects and immediately tries to reclaim with the stored playerId.
+  // This used to fail with NO_SEAT and strand the reloaded tab.
+  const { socket: b2 } = await connect();
+  const re = await emitAck(b2, 'room:rejoin', { code: roomCode, playerId: jb.playerId });
+  assert.equal(re.ok, true);
+  assert.equal(re.seat, 1);
+
+  // The seat now belongs to the new socket.
+  const reclaimed = await waitState(aStates, (s) => s.players[1].connected === true);
+  assert.equal(reclaimed.players[1].connected, true);
+  assert.equal(reclaimed.players[1].isBot, false);
+  assert.equal(reclaimed.players[1].botControlled, false);
+
+  // The old socket was evicted: it can no longer act for that seat.
+  const oldAck = await emitAck(b, 'game:bid', { bid: 5 });
+  assert.equal(oldAck.error, 'NOT_IN_ROOM');
+
+  // When the old socket's disconnect finally lands, the seat must stay intact.
+  b.disconnect();
+  b.io.disconnect();
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal(manager.get(roomCode).state.players[1].connected, true);
+  assert.equal(manager.get(roomCode).state.players[1].socketId, b2.id);
+});
+
 test('host transfer: leaving host promotes the lowest connected human; seats free up', async () => {
   const { a, aStates, roomCode } = await createHostedRoom();
   const { socket: b } = await connect();

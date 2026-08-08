@@ -24,6 +24,8 @@ export function registerHandlers(io, manager) {
         playerId,
         totalRounds: payload?.totalRounds,
         scoringVariant: payload?.scoringVariant,
+        gameType: payload?.gameType || 'call-break',
+        numSeats: payload?.numSeats,
       });
       socket.data = { code: room.code, seat: room.hostSeat, playerId };
       socket.join(room.code);
@@ -100,6 +102,39 @@ export function registerHandlers(io, manager) {
       const room = manager.get(socket.data.code);
       if (!room) return ack?.({ error: 'NOT_IN_ROOM' });
       const res = room.play(socket.data.seat, payload?.card);
+      if (res.error) return ack?.({ error: res.error });
+      ack?.({ ok: true });
+    });
+
+    // UNO-specific events
+    socket.on('uno:play-card', (payload, ack) => {
+      const room = manager.get(socket.data.code);
+      if (!room) return ack?.({ error: 'NOT_IN_ROOM' });
+      const res = room.playCard(socket.data.seat, payload?.card);
+      if (res.error) return ack?.({ error: res.error });
+      ack?.({ ok: true });
+    });
+
+    socket.on('uno:draw-card', (payload, ack) => {
+      const room = manager.get(socket.data.code);
+      if (!room) return ack?.({ error: 'NOT_IN_ROOM' });
+      const res = room.drawCard(socket.data.seat);
+      if (res.error) return ack?.({ error: res.error });
+      ack?.({ ok: true });
+    });
+
+    socket.on('uno:call-uno', (payload, ack) => {
+      const room = manager.get(socket.data.code);
+      if (!room) return ack?.({ error: 'NOT_IN_ROOM' });
+      const res = room.callUno(socket.data.seat);
+      if (res.error) return ack?.({ error: res.error });
+      ack?.({ ok: true });
+    });
+
+    socket.on('uno:choose-color', (payload, ack) => {
+      const room = manager.get(socket.data.code);
+      if (!room) return ack?.({ error: 'NOT_IN_ROOM' });
+      const res = room.chooseColor(socket.data.seat, payload?.color);
       if (res.error) return ack?.({ error: res.error });
       ack?.({ ok: true });
     });

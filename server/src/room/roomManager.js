@@ -24,10 +24,10 @@ export class RoomManager {
     this.rooms = new Map();
   }
 
-  create({ io, name, socketId, playerId, totalRounds, scoringVariant }) {
+  create({ io, name, socketId, playerId, totalRounds, scoringVariant, gameType, numSeats }) {
     let code = pickCode();
     while (this.rooms.has(code)) code = pickCode();
-    const room = new Room({ code, io, totalRounds, scoringVariant });
+    const room = new Room({ code, io, gameType, totalRounds, numSeats, scoringVariant });
     room.addHuman({ name, socketId, playerId });
     this.rooms.set(code, room);
     return room;

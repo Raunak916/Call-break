@@ -10,7 +10,9 @@
       "Read(//c/Program Files/Microsoft/Edge/Application/**)",
       "Read(//c/Program Files/Google/Chrome/Application/**)",
       "Read(//c/Program Files \\\\\\(x86\\\\\\)/Google/Chrome/Application/**)",
-      "Bash(curl -s http://localhost:3100/health)"
+      "Bash(curl -s http://localhost:3100/health)",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)"
     ]
   }
 }

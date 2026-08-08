@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { GameProvider } from './GameContext.jsx';
+import GameSelector from './screens/GameSelector.jsx';
 import Home from './screens/Home.jsx';
 import RoomRoute from './screens/RoomRoute.jsx';
 import GlobalOverlays from './GlobalOverlays.jsx';
@@ -19,9 +20,10 @@ function AppLayout() {
       {/* Main content area — smooth transition when sidebar appears/disappears */}
       <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', transition: 'all 0.3s ease' }}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<GameSelector />} />
+          <Route path="/call-break" element={<Home />} />
           <Route path="/room/:code" element={<RoomRoute />} />
-          <Route path="*" element={<Home />} />
+          <Route path="*" element={<GameSelector />} />
         </Routes>
       </Box>
 

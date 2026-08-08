@@ -11,6 +11,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useGame } from '../GameContext.jsx';
 import { storage } from '../lib/storage.js';
 import { friendlyError } from '../lib/messages.js';
@@ -63,6 +64,14 @@ export default function Home() {
         `,
       }}
     >
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate('/')}
+        sx={{ position: 'absolute', top: { xs: 12, sm: 16 }, left: { xs: 12, sm: 16 }, color: 'text.secondary', textTransform: 'none', fontSize: 13 }}
+      >
+        All games
+      </Button>
+
       <Card
         sx={{
           width: '100%',
